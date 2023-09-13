@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -46,7 +47,8 @@ type TEntry struct {
 	V       string `json:"ver"`
 	UUID    string `json:"host"`
 	Name    string `json:"name"`
-	TS      string `json:"@timestamp"`
+	TS      string `json:"lts"`
+	Time    string `json:"time"`
 }
 
 func main() {
@@ -71,6 +73,7 @@ func main() {
 					UUID:    host[0],
 					Name:    host[1],
 					TS:      tlog.Timestamp,
+					Time:    time.Now().UTC().Format(time.RFC3339Nano),
 				}
 				bs, err := json.Marshal(tent)
 				if err == nil {
