@@ -3,12 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/simplesurance/go-ip-anonymizer/ipanonymizer"
 )
 
 type OKResponse struct {
@@ -49,10 +51,18 @@ type TEntry struct {
 	Name    string `json:"name"`
 	TS      string `json:"lts"`
 	Time    string `json:"time"`
+	IP      string `json:"ip"`
 }
 
 func main() {
+
+	anonymizer := ipanonymizer.NewWithMask(
+		net.CIDRMask(24, 32),
+		net.CIDRMask(64, 128),
+	)
+
 	e := echo.New()
+	e.IPExtractor = echo.ExtractIPFromXFFHeader(echo.TrustPrivateNet(true))
 	e.Use(middleware.Decompress())
 	e.POST("/*", func(c echo.Context) error {
 		//		b, _ := io.ReadAll(c.Request().Body)
@@ -61,7 +71,11 @@ func main() {
 		if err == nil {
 			evt := strings.Split(tlog.Message, "/")
 			host := strings.SplitN(tlog.Host, ":", 2)
-			if len(evt) > 2 && evt[1] == "Agreement" && len(host) > 1 {
+			name := ""
+			if len(host) > 1 {
+				name = host[1]
+			}
+			if len(evt) > 2 && evt[1] == "Agreement" {
 				tent := &TEntry{
 					Event:   evt[2],
 					Address: tlog.Data.Details.Address,
@@ -71,9 +85,13 @@ func main() {
 					Weight:  tlog.Data.Details.Weight,
 					V:       tlog.Data.V,
 					UUID:    host[0],
-					Name:    host[1],
+					Name:    name,
 					TS:      tlog.Timestamp,
 					Time:    time.Now().UTC().Format(time.RFC3339Nano),
+				}
+				if tent.Event == "VoteSent" {
+					tent.IP, err = anonymizer.IPString(c.RealIP())
+
 				}
 				bs, err := json.Marshal(tent)
 				if err == nil {

@@ -2,7 +2,10 @@ module tproxy
 
 go 1.20
 
-require github.com/labstack/echo/v4 v4.11.1
+require (
+	github.com/labstack/echo/v4 v4.11.1
+	github.com/simplesurance/go-ip-anonymizer v0.0.0-20200429124537-35a880f8e87d
+)
 
 require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
